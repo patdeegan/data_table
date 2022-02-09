@@ -1,15 +1,26 @@
+# This fixes a bug in DataTable which will result in nil getting passed to self.where which now
+# throws an error in mongoid
 module DataTable
   module Mongoid
     module ClassMethods
       def _find_objects params, fields, search_fields
-        self.where(_where_conditions params[:ssearch], search_fields).
+        where = _where_conditions params[:ssearch], search_fields
+        if !where.nil?
+            self.where(where).
+                order_by(_order_by_fields params, fields).
+                page(_page params).
+                per(_per_page params)
+        else
+            self.
              order_by(_order_by_fields params, fields).
              page(_page params).
              per(_per_page params)
+        end
       end
 
       def _matching_count params, search_fields
-        self.where(_where_conditions params[:ssearch], search_fields).count
+        where = _where_conditions params[:ssearch], search_fields
+        where.nil? ? self.count : self.where(_where_conditions params[:ssearch], search_fields).count
       end
 
       def _where_conditions raw_query, search_fields
@@ -44,4 +55,3 @@ module DataTable
     end
   end
 end
-
